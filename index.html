@@ -450,7 +450,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visi
   <div class="modal-card">
     <h3>Neo Formulary — verify before clinical use</h3>
     <p>Suggested doses are calculated from the weight, gestation and date of birth entered, using the unit's drug list. <b>Always confirm the dose, interval and route against the full drug entry and your clinical judgement, and have pharmacy/neonatology confirm when unsure.</b></p>
-    <p>Protocol-tab doses are rounded up to the nearest whole number where ≥1 (for ease of drawing up); medication suggestions are shown to 2 decimal places.</p>
+    <p>Calculated medication amounts preserve fractional precision (up to 3 decimal places where needed). Confirm practical measurement and any required rounding with the full drug instructions.</p>
     <p style="font-size:12px;color:var(--ink-soft);">Patient details (weight, gestation, date of birth) are stored on this device only and never sent anywhere. Use “Clear” to remove them.</p>
     <div class="about-box">
       <div class="about-title">Drug list &amp; updates</div>
@@ -1142,10 +1142,10 @@ function drugItemHtml(d, showClass){
   const meta = [nm.rest];
   if(showClass){ const c = CLASS_BY_ID[drugClasses(d)[0]]; if(c) meta.push(c.label.replace(/^Antibacterials — /,'')); }
   const metaTxt = meta.filter(Boolean).join(' · ');
-  return `<div class="drug-item" onclick="showDrugDetail(${origIdx})"><div class="di-main">
+  return `<button type="button" class="drug-item" data-drug-index="${origIdx}" onclick="showDrugDetail(${origIdx})"><span class="di-main">
       <div class="dn">${escapeHtml(nm.short)}${hasRule(d)?' <span class="calc-tag">calc</span>':''}</div>
       ${metaTxt ? `<div class="db">${escapeHtml(metaTxt)}</div>` : ''}
-    </div></div>`;
+    </span></button>`;
 }
 function groupDrugs(list){
   const map = {};
@@ -1241,10 +1241,10 @@ function showDrugDetail(idx, keepScroll){
     html += `<details class="incomp"><summary>Incompatibilities${n>1?' ('+n+')':''}</summary><div class="v">${escapeHtml(d['Incompatibilities'])}</div></details>`;
   }
   html += `</div>`;
-  $('drugList').innerHTML=''; $('drugList').style.display='none';
+  const wideLayout = window.matchMedia && window.matchMedia('(min-width: 900px)').matches; if(wideLayout){ $('drugList').style.display=''; } else { $('drugList').innerHTML=''; $('drugList').style.display='none'; }
   $('drugCount').style.display='none';
   $('viewSwitch').style.display = 'none';
-  $('drugDetailWrap').innerHTML = html;
+  $('drugDetailWrap').innerHTML = html; if(wideLayout){ document.querySelectorAll('#drugList .drug-item').forEach(el=>el.classList.toggle('selected', Number(el.dataset.drugIndex)===idx)); }
   if(!keepScroll){ try{ const top = $('medPane').getBoundingClientRect().top + window.scrollY - (document.querySelector('header.app').offsetHeight + $('ptCard').offsetHeight) - 4; window.scrollTo(0, Math.max(0,top)); }catch(e){} }
 }
 function backToDrugList(){ currentDrugIdx = null; currentDrugName = null; filterDrugs($('drugSearch').value); }
