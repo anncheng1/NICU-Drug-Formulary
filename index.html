@@ -384,6 +384,52 @@
   .toast{border-radius:14px; font-size:14px;}
   footer{padding:18px 16px calc(28px + env(safe-area-inset-bottom)); font-size:12px; color:#8A8A8E;}
   .empty-state{font-size:14px;}
+
+/* Desktop and accessibility refinement */
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,.drug-item:focus-visible{outline:3px solid #2A8C83!important;outline-offset:2px}
+.drug-item{appearance:none;-webkit-appearance:none;width:100%;text-align:left;font-family:var(--sans);color:inherit;min-height:52px}
+.drug-item[aria-pressed="true"]{background:#E8F3F1!important;border-color:#7FB9B0;box-shadow:inset 3px 0 0 var(--teal)}
+.drug-item .dn,.drug-item .db{line-height:1.4}
+.drug-detail{box-shadow:0 2px 10px rgba(11,46,51,.045)}
+.drug-detail .sec{padding-top:14px;margin-top:14px}
+.drug-detail .sec .v,.drug-detail .sub .sv{overflow-wrap:anywhere}
+.drug-count{font-variant-numeric:tabular-nums}
+.empty-state{background:#fff;border:1px dashed var(--line);border-radius:12px}
+@media(min-width:900px){
+ header.app{padding:12px 28px}
+ header.app .head-row{max-width:1240px;margin:0 auto}
+ header.app h1{font-size:19px}
+ main#mainScreen{max-width:1240px;padding:18px 28px 30px}
+ .pt-card{margin:0 -28px;padding:12px 28px}
+ .pt-pills{gap:8px}
+ .pill{padding:7px 12px;font-size:13px}
+ .mode-switch{max-width:420px;margin:16px auto 14px}
+ .mode-switch button{padding:11px 18px}
+ #medPane{display:grid;grid-template-columns:minmax(280px,360px) minmax(0,1fr);grid-template-areas:"search search" "views views" "count count" "list detail";column-gap:22px;align-items:start}
+ #drugSearchWrap{grid-area:search;position:sticky;top:0;z-index:30;padding:12px 0 10px;margin:0;background:var(--paper)}
+ #viewSwitch{grid-area:views;margin:0 0 12px;max-width:360px}
+ #drugCount{grid-area:count;margin:0 0 8px}
+ #drugList{grid-area:list;min-width:0;max-height:calc(100vh - 300px);overflow:auto;padding-right:5px;scrollbar-gutter:stable}
+ #drugDetailWrap{grid-area:detail;min-width:0;position:sticky;top:12px;max-height:calc(100vh - 190px);overflow:auto;padding:0 2px 10px 0;scrollbar-gutter:stable}
+ #drugDetailWrap:empty:before{content:"Choose a medicine from the list to view its dose, preparation, administration and safety information.";display:block;background:#fff;border:1px dashed var(--line);border-radius:14px;padding:34px 30px;color:var(--ink-soft);font-size:14px;line-height:1.7;text-align:center;margin-top:4px}
+ #drugDetailWrap .back-btn{display:none}
+ #drugList .ios-list{margin-bottom:10px}
+ #drugList .drug-item{padding:12px 14px;margin-bottom:4px}
+ #drugList .drug-item .dn{font-size:14px}
+ #drugList .drug-item .db{font-size:12px}
+ #drugDetailWrap .drug-detail{padding:22px;border-radius:16px}
+ #drugDetailWrap .drug-detail h2{font-size:25px}
+ #drugDetailWrap .drug-detail .sec .v{font-size:15px;line-height:1.65}
+ #protoPane{max-width:1000px;margin:0 auto}
+ #tabSelectWrap{margin:0;border-radius:12px}
+ #panels{padding-top:16px}
+ footer{max-width:1240px;margin:0 auto;text-align:center}
+}
+@media(min-width:1400px){#medPane{grid-template-columns:minmax(300px,390px) minmax(0,1fr);column-gap:28px}#drugList{max-height:calc(100vh - 320px)}#drugDetailWrap{max-height:calc(100vh - 190px)}}
+@media(max-width:899px){.drug-item{border-radius:0}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+@media print{header.app,.pt-actions,.mode-switch,.search-wrap,.view-switch,.back-btn,.toast,footer{display:none!important}body{background:#fff!important;color:#000!important}main#mainScreen{max-width:none;padding:0}.pt-card{position:static;margin:0;padding:0;background:#fff;border:0}#medPane{display:block!important}#drugList{display:none!important}#drugDetailWrap{display:block!important;max-height:none;overflow:visible}.drug-detail{box-shadow:none;border:1px solid #bbb!important}.sec,.sub,details.incomp{break-inside:avoid}}
+
 </style>
 </head>
 <body>
