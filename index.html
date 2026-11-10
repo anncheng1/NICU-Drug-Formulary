@@ -2082,7 +2082,7 @@ function suggestionHtml(d, p){
 /* Highlight every per-kg dose in the text with the amount for this baby. */
 function annotateDoseText(text, wt){
   const esc = escapeHtml(text);
-  const num = '(\d{1,3}(?:,\d{3})+|\d+(?:\\.\d+)?)';
+  const num = '(\\d{1,3}(?:,\\d{3})+|\\d+(?:\\.\\d+)?)';
   const re = new RegExp(num+'(?:\\s*(?:-|–|to)\\s*'+num+')?\\s*(mg|mcg|micrograms?|units?|unit|iu|u|mmol|g|ml|ng|meq)\\s*\\/\\s*kg(?:\\s*\\/\\s*(dose|day|hour|hr|h|min|minute))?', 'gi');
   return esc.replace(re, (m, a, b, u, per)=>{
     const lo = parseFloat(a.replace(/,/g,'')), hi = b ? parseFloat(b.replace(/,/g,'')) : null;
