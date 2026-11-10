@@ -1,44 +1,38 @@
 /**
- * Regression tests for the pure calculation and CSV functions in index.html.
- *
- * Run from the repository root:
- *   node --test tests/dose-validation.test.js
- *
- * These tests execute the functions extracted from the actual app source; they do
- * not duplicate their implementations. They validate arithmetic/display and CSV
- * integrity only, not the clinical appropriateness of any drug regimen.
+ * Regression tests for pure calculation and CSV functions in index.html.
+ * Run: node --test tests/dose-validation.test.js
+ * Software/arithmetic checks only; not clinical dose validation.
  */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const path = require('node:path');
 const vm = require('node:vm');
+const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 
-const html = fs.readFileSync(require('node:path').join(__dirname, '..', 'index.html'), 'utf8');
-
-function extractFunction(name) {
-  const marker = new RegExp('function\\s+' + name + '\\s*\\(');
-  const match = marker.exec(html);
-  assert.ok(match, 'Expected function ' + name + ' to exist in index.html');
-  const open = html.indexOf('{', match.index);
-  const lineEnd = html.indexOf('\\n', open);
-  // Compact one-line helpers end on their declaration line; block functions
-  // use a column-zero outer closing brace in this codebase.
-  if (lineEnd !== -1 && html.slice(open, lineEnd).includes('}')) {
-    return html.slice(match.index, lineEnd);
-  }
-  const close = html.indexOf('\\n}', open);
-  assert.ok(close > open, 'Could not find end of function ' + name);
-  return html.slice(match.index, close + 2);
+function sourceBetween(start, end) {
+  const a = html.indexOf(start);
+  const b = html.indexOf(end, a + start.length);
+  assert.ok(a >= 0 && b > a, 'Could not locate source block: ' + start);
+  return html.slice(a, b).trim();
 }
-
 const context = {
   DRUG_FIELDS: ['Class','Brand','Dose','Reconstitution/ dilution/ special instruction','Diluent','Incompatibilities','Method of administration','Fridge item','Storage after reconstitution','Protect from light','Ref'],
   escapeHtml: s => String(s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])),
   amt: n => !Number.isFinite(n) ? '—' : (Math.abs(n) >= 100 ? String(Math.round(n)) : Math.abs(n) >= 10 ? String(Math.round(n*10)/10) : String(Math.round(n*100)/100))
 };
-['fmtSmart','mg','ml','mcg','unit','parseCSV','csvRowsToDrugs','cleanDrugList','drugsFromCsvText','annotateDoseText'].forEach(name => {
-  vm.runInNewContext(extractFunction(name), context);
-});
+[
+  sourceBetween('function fmtSmart(', 'function mg('),
+  sourceBetween('function mg(', 'function ml('),
+  sourceBetween('function ml(', 'function mcg('),
+  sourceBetween('function mcg(', 'function unit('),
+  sourceBetween('function unit(', 'function plain('),
+  sourceBetween('function cleanDrugList(', '/* Turn the text of drugs.csv'),
+  sourceBetween('function drugsFromCsvText(', 'function trySync('),
+  sourceBetween('function parseCSV(', 'function csvRowsToDrugs('),
+  sourceBetween('function csvRowsToDrugs(', '/* Precise display for infusion rates'),
+  sourceBetween('function annotateDoseText(', '/* ================= INIT')
+].forEach(source => vm.runInNewContext(source, context));
 
 test('weight-based display helpers calculate amounts for common NICU weights', () => {
   for (const wt of [0.5, 1, 2.5, 4]) {
@@ -49,7 +43,7 @@ test('weight-based display helpers calculate amounts for common NICU weights', (
   }
 });
 
-test('formatting does not round small positive amounts to zero', () => {
+test('display formatter handles zero, decimals and non-finite values', () => {
   assert.equal(context.fmtSmart(0), '0');
   assert.equal(context.fmtSmart(0.125), '0.125');
   assert.equal(context.fmtSmart(0.001), '0.001');
@@ -58,20 +52,16 @@ test('formatting does not round small positive amounts to zero', () => {
 });
 
 test('dose annotation recognises single doses and ranges', () => {
-  const single = context.annotateDoseText('50 mg/kg', 2.5);
-  const range = context.annotateDoseText('0.5-1 mg/kg/dose', 2);
-  assert.match(single, /\[125 mg\]/);
-  assert.match(range, /\[1–2 mg\]/);
+  assert.match(context.annotateDoseText('50 mg/kg', 2.5), /\[125 mg\]/);
+  assert.match(context.annotateDoseText('0.5-1 mg/kg/dose', 2), /\[1–2 mg\]/);
 });
 
 test('CSV parser handles quoted commas, escaped quotes, tabs and BOM', () => {
   const parsed = context.parseCSV('\uFEFFname,Dose,Ref\r\nDrug A,"1,000 mg/kg","Guide ""2026"""\r\n');
   assert.deepEqual(JSON.parse(JSON.stringify(parsed)), [
-    ['name','Dose','Ref'],
-    ['Drug A','1,000 mg/kg','Guide "2026"']
+    ['name','Dose','Ref'], ['Drug A','1,000 mg/kg','Guide "2026"']
   ]);
-  const tsv = context.parseCSV('name\tDose\nDrug B\t2 mg/kg\n');
-  assert.equal(tsv[1][0], 'Drug B');
+  assert.equal(context.parseCSV('name\tDose\nDrug B\t2 mg/kg\n')[1][0], 'Drug B');
 });
 
 test('CSV validation rejects malformed quotes, blank and duplicate names, and overflow columns', () => {
@@ -89,8 +79,7 @@ test('CSV validation accepts a well-formed minimal drug list', () => {
 });
 
 test('hypoglycaemia GIR reference arithmetic is internally consistent', () => {
-  // D10 contains 100 mg/mL. GIR (mg/kg/min) = concentration x mL/kg/day / 1440.
-  const gir = rate => 100 * rate / 1440;
+  const gir = rate => 100 * rate / 1440; // D10: 100 mg/mL
   assert.ok(Math.abs(gir(60) - 4.1666667) < 0.0001);
   assert.ok(Math.abs(gir(90) - 6.25) < 0.0001);
   assert.ok(Math.abs(gir(115.2) - 8) < 0.0001);
