@@ -46,3 +46,13 @@ Upload a new `index.html` the same way. Open phones show a "new version availabl
 - Check the four icon `.png` files are in the repository next to `index.html` (not in a sub-folder).
 - On the phone, **delete the old home-screen shortcut and add it again** — iPhone and Android keep the icon from the first time it was added.
 - Open the app from its GitHub Pages web address, not a downloaded copy of `index.html`.
+
+
+## Safety and clinical governance (review branch)
+
+- Patient-entry validation now checks weight, gestational age weeks/days, calendar-valid date/time of birth, and prevents a future birth date/time.
+- The patient banner warns when the recorded weight is more than 24 hours old. Re-weigh and update the patient record before using calculated doses. This is a prompt, not a substitute for checking the current measured weight.
+- Drug-list synchronisation rejects malformed CSV quotation, duplicate generic-name rows, and rows containing data beyond the header. A rejected update leaves the last known-good database in place.
+- Clinical dose changes are not made automatically. See `clinical-review.md` for high-priority discrepancies requiring local neonatal/pharmacy review and documented approval.
+
+**Governance before clinical use:** all doses, concentrations, dilution instructions, infusion rates, maximum doses, age/gestation bands, and protocol algorithms must be verified against current Malaysian/local guidance and signed off by the Hospital Miri NICU clinical lead and pharmacy. The app is a reference aid, not a prescribing or administration authority.
