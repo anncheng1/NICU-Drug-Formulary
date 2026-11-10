@@ -16,7 +16,7 @@ const vm = require('node:vm');
 const html = fs.readFileSync(require('node:path').join(__dirname, '..', 'index.html'), 'utf8');
 
 function extractFunction(name) {
-  const marker = new RegExp('function\\\\s+' + name + '\\\\s*\\\\(');
+  const marker = new RegExp('function\\s+' + name + '\\s*\\(');
   const match = marker.exec(html);
   assert.ok(match, 'Expected function ' + name + ' to exist in index.html');
   const open = html.indexOf('{', match.index);
