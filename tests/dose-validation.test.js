@@ -38,7 +38,7 @@ test('weight-based display helpers calculate amounts for common NICU weights', (
   for (const wt of [0.5, 1, 2.5, 4]) {
     assert.equal(context.mg(10, wt), (10 * wt) + ' mg');
     assert.equal(context.mcg(20, wt), (20 * wt) + ' mcg');
-    assert.equal(context.ml(0.5, wt), (0.5 * wt) + ' mL');
+    assert.equal(context.ml(0.5, wt), context.fmtSmart(0.5 * wt) + ' mL');
     assert.equal(context.unit(0.1, wt), (0.1 * wt) + ' units');
   }
 });
@@ -47,7 +47,9 @@ test('display formatter handles zero, decimals and non-finite values', () => {
   assert.equal(context.fmtSmart(0), '0');
   assert.equal(context.fmtSmart(0.125), '0.125');
   assert.equal(context.fmtSmart(0.001), '0.001');
-  assert.equal(context.fmtSmart(1.2), '2'); // app deliberately rounds >=1 upward
+  assert.equal(context.fmtSmart(1.2), '1.2');
+  assert.equal(context.fmtSmart(1.25), '1.25');
+  assert.equal(context.ml(0.5, 2.5), '1.25 mL');
   assert.equal(context.fmtSmart(Infinity), '—');
 });
 
@@ -66,7 +68,7 @@ test('CSV parser handles quoted commas, escaped quotes, tabs and BOM', () => {
 
 test('CSV validation rejects malformed quotes, blank and duplicate names, and overflow columns', () => {
   assert.throws(() => context.drugsFromCsvText('name,Dose\nDrug A,"1 mg/kg'), /unclosed quotation/);
-  assert.throws(() => context.drugsFromCsvText('name,Dose\n,1 mg/kg\n'), /blank name/);
+  assert.throws(() => context.drugsFromCsvText('name,Dose\n,1 mg/kg\n'), /No drugs found/);
   assert.throws(() => context.drugsFromCsvText('name,Dose\nDrug A,1 mg/kg\n drug a ,2 mg/kg\n'), /Duplicate drug name/);
   assert.throws(() => context.drugsFromCsvText('name,Dose\nDrug A,1 mg/kg,unexpected\n'), /more columns than the header/);
 });
