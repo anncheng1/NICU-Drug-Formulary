@@ -20,8 +20,12 @@ function extractFunction(name) {
   const match = marker.exec(html);
   assert.ok(match, 'Expected function ' + name + ' to exist in index.html');
   const open = html.indexOf('{', match.index);
-  // App functions are formatted with the outer closing brace at column zero.
-  // This avoids miscounting braces inside JavaScript regular-expression literals.
+  const lineEnd = html.indexOf('\\n', open);
+  // Compact one-line helpers end on their declaration line; block functions
+  // use a column-zero outer closing brace in this codebase.
+  if (lineEnd !== -1 && html.slice(open, lineEnd).includes('}')) {
+    return html.slice(match.index, lineEnd);
+  }
   const close = html.indexOf('\\n}', open);
   assert.ok(close > open, 'Could not find end of function ' + name);
   return html.slice(match.index, close + 2);
