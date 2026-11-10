@@ -583,7 +583,9 @@ function renderPtCard(){
   let warn = '';
   if(p.wt<0.4) warn = '⚠ Weight '+p.wt.toFixed(2)+' kg is unusually LOW for a neonate — check for a data-entry error.';
   else if(p.wt>6.0) warn = '⚠ Weight '+p.wt.toFixed(2)+' kg is unusually HIGH for a neonate — check for a data-entry error.';
-  if(p.dol===null) warn = (warn?warn+' ':'')+'⚠ Date of birth is in the future — check the date.';
+  if(p.dol===null) warn = (warn?warn+' ':'')+'⚠ Date of birth/time is invalid or in the future — check the entry.';
+  const weightAgeHours = p.updatedAt ? (Date.now()-new Date(p.updatedAt).getTime())/3600000 : Infinity;
+  if(!Number.isFinite(weightAgeHours) || weightAgeHours>24) warn = (warn?warn+' ':'')+'⚠ Weight was last entered more than 24 hours ago (or its entry time is unavailable). Re-weigh and update before using calculated doses.';
   v.innerHTML = `<div class="pt-row">
       <div class="pt-pills">
         <span class="pill"><span class="lbl">Weight</span>${p.wt.toFixed(2)} kg</span>
@@ -616,11 +618,26 @@ function closePtForm(){
 }
 $('pfCancelBtn').addEventListener('click', closePtForm);
 $('pfSaveBtn').addEventListener('click', ()=>{
-  const wt = $('pfWt').value, gaW = $('pfGaW').value, gaD = $('pfGaD').value || '0', dob = $('pfDob').value, tob = $('pfTob').value || '00:00';
-  if(!wt || !gaW || !dob){ alert('Please enter weight, GA (weeks) and date of birth.'); return; }
-  if(parseFloat(wt)<=0){ alert('Weight must be more than 0 kg.'); return; }
-  if(parseInt(gaW)<20 || parseInt(gaW)>44){ alert('GA weeks should be between 20 and 44.'); return; }
-  patient = {wt, gaW, gaD, dob, tob, updatedAt:new Date().toISOString()};
+  const wtRaw = $('pfWt').value.trim();
+  const gaWRaw = $('pfGaW').value.trim();
+  const gaDRaw = $('pfGaD').value.trim() || '0';
+  const dob = $('pfDob').value;
+  const tob = $('pfTob').value || '00:00';
+  const wt = Number(wtRaw), gaW = Number(gaWRaw), gaD = Number(gaDRaw);
+  if(!wtRaw || !gaWRaw || !dob){ alert('Please enter weight, GA (weeks) and date of birth.'); return; }
+  if(!Number.isFinite(wt) || wt<=0){ alert('Weight must be a valid number greater than 0 kg.'); return; }
+  if(!Number.isInteger(gaW) || gaW<20 || gaW>44){ alert('GA weeks must be a whole number between 20 and 44.'); return; }
+  if(!Number.isInteger(gaD) || gaD<0 || gaD>6){ alert('GA days must be a whole number between 0 and 6.'); return; }
+  if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(dob) || !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(tob)){
+    alert('Please enter a valid date and time of birth.'); return;
+  }
+  const birth = new Date(dob+'T'+tob);
+  const [yy,mm,dd] = dob.split('-').map(Number);
+  if(!Number.isFinite(birth.getTime()) || birth.getFullYear()!==yy || birth.getMonth()+1!==mm || birth.getDate()!==dd){
+    alert('Date of birth is not a valid calendar date.'); return;
+  }
+  if(birth.getTime()>Date.now()){ alert('Date and time of birth cannot be in the future.'); return; }
+  patient = {wt:String(wt), gaW:String(gaW), gaD:String(gaD), dob, tob, updatedAt:new Date().toISOString()};
   savePatient(); closePtForm(); refreshAll();
 });
 function clearPatient(){
@@ -715,8 +732,19 @@ function cleanDrugList(list){
 function drugsFromCsvText(text){
   const rows = parseCSV(text);
   if(rows.length<2) throw new Error('drugs.csv is empty.');
+  const headerCount = rows[0].length;
   const list = csvRowsToDrugs(rows);
   if(list.length===0) throw new Error('No drugs found — the first row of drugs.csv must contain a "name" column.');
+  const seen = new Set();
+  for(const drug of list){
+    const key = String(drug.name||'').trim().toLowerCase();
+    if(!key) throw new Error('A drug row has a blank name. Correct drugs.csv before publishing.');
+    if(seen.has(key)) throw new Error('Duplicate drug name found: '+drug.name+'. Keep drug names unique before publishing.');
+    seen.add(key);
+  }
+  if(rows.slice(1).some(row=>row.length>headerCount && row.slice(headerCount).some(cell=>String(cell||'').trim()))){
+    throw new Error('A CSV row contains more columns than the header. Re-export drugs.csv and check commas/quotation marks.');
+  }
   return cleanDrugList(list);
 }
 function trySync(showErrorsToUser){
@@ -1202,6 +1230,7 @@ function parseCSV(text){
       else field += c;
     }
   }
+  if(inQuotes) throw new Error('drugs.csv contains an unclosed quotation mark. Check the CSV export before publishing.');
   if(field.length>0 || row.length>0){ row.push(field); rows.push(row); }
   return rows.filter(r => !r.every(f => f.trim()===''));
 }
