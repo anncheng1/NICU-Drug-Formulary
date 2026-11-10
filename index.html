@@ -384,6 +384,52 @@
   .toast{border-radius:14px; font-size:14px;}
   footer{padding:18px 16px calc(28px + env(safe-area-inset-bottom)); font-size:12px; color:#8A8A8E;}
   .empty-state{font-size:14px;}
+
+/* Desktop and accessibility refinement */
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,.drug-item:focus-visible{outline:3px solid #2A8C83!important;outline-offset:2px}
+.drug-item{appearance:none;-webkit-appearance:none;width:100%;text-align:left;font-family:var(--sans);color:inherit;min-height:52px}
+.drug-item.selected,.drug-item[aria-pressed="true"]{background:#E8F3F1!important;border-color:#7FB9B0;box-shadow:inset 3px 0 0 var(--teal)}
+.drug-item .dn,.drug-item .db{line-height:1.4}
+.drug-detail{box-shadow:0 2px 10px rgba(11,46,51,.045)}
+.drug-detail .sec{padding-top:14px;margin-top:14px}
+.drug-detail .sec .v,.drug-detail .sub .sv{overflow-wrap:anywhere}
+.drug-count{font-variant-numeric:tabular-nums}
+.empty-state{background:#fff;border:1px dashed var(--line);border-radius:12px}
+@media(min-width:900px){
+ header.app{padding:12px 28px}
+ header.app .head-row{max-width:1240px;margin:0 auto}
+ header.app h1{font-size:19px}
+ main#mainScreen{max-width:1240px;padding:18px 28px 30px}
+ .pt-card{margin:0 -28px;padding:12px 28px}
+ .pt-pills{gap:8px}
+ .pill{padding:7px 12px;font-size:13px}
+ .mode-switch{max-width:420px;margin:16px auto 14px}
+ .mode-switch button{padding:11px 18px}
+ #medPane{display:grid;grid-template-columns:minmax(280px,360px) minmax(0,1fr);grid-template-areas:"search search" "views views" "count count" "list detail";column-gap:22px;align-items:start}
+ #drugSearchWrap{grid-area:search;position:sticky;top:0;z-index:30;padding:12px 0 10px;margin:0;background:var(--paper)}
+ #viewSwitch{grid-area:views;margin:0 0 12px;max-width:360px}
+ #drugCount{grid-area:count;margin:0 0 8px}
+ #drugList{grid-area:list;min-width:0;max-height:calc(100vh - 300px);overflow:auto;padding-right:5px;scrollbar-gutter:stable}
+ #drugDetailWrap{grid-area:detail;min-width:0;position:sticky;top:12px;max-height:calc(100vh - 190px);overflow:auto;padding:0 2px 10px 0;scrollbar-gutter:stable}
+ #drugDetailWrap:empty:before{content:"Choose a medicine from the list to view its dose, preparation, administration and safety information.";display:block;background:#fff;border:1px dashed var(--line);border-radius:14px;padding:34px 30px;color:var(--ink-soft);font-size:14px;line-height:1.7;text-align:center;margin-top:4px}
+ #drugDetailWrap .back-btn{display:none}
+ #drugList .ios-list{margin-bottom:10px}
+ #drugList .drug-item{padding:12px 14px;margin-bottom:4px}
+ #drugList .drug-item .dn{font-size:14px}
+ #drugList .drug-item .db{font-size:12px}
+ #drugDetailWrap .drug-detail{padding:22px;border-radius:16px}
+ #drugDetailWrap .drug-detail h2{font-size:25px}
+ #drugDetailWrap .drug-detail .sec .v{font-size:15px;line-height:1.65}
+ #protoPane{max-width:1000px;margin:0 auto}
+ #tabSelectWrap{margin:0;border-radius:12px}
+ #panels{padding-top:16px}
+ footer{max-width:1240px;margin:0 auto;text-align:center}
+}
+@media(min-width:1400px){#medPane{grid-template-columns:minmax(300px,390px) minmax(0,1fr);column-gap:28px}#drugList{max-height:calc(100vh - 320px)}#drugDetailWrap{max-height:calc(100vh - 190px)}}
+@media(max-width:899px){.drug-item{border-radius:0}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+@media print{header.app,.pt-actions,.mode-switch,.search-wrap,.view-switch,.back-btn,.toast,footer{display:none!important}body{background:#fff!important;color:#000!important}main#mainScreen{max-width:none;padding:0}.pt-card{position:static;margin:0;padding:0;background:#fff;border:0}#medPane{display:block!important}#drugList{display:none!important}#drugDetailWrap{display:block!important;max-height:none;overflow:visible}.drug-detail{box-shadow:none;border:1px solid #bbb!important}.sec,.sub,details.incomp{break-inside:avoid}}
+
 </style>
 </head>
 <body>
@@ -404,7 +450,7 @@
   <div class="modal-card">
     <h3>Neo Formulary — verify before clinical use</h3>
     <p>Suggested doses are calculated from the weight, gestation and date of birth entered, using the unit's drug list. <b>Always confirm the dose, interval and route against the full drug entry and your clinical judgement, and have pharmacy/neonatology confirm when unsure.</b></p>
-    <p>Protocol-tab doses are rounded up to the nearest whole number where ≥1 (for ease of drawing up); medication suggestions are shown to 2 decimal places.</p>
+    <p>Calculated medication amounts preserve fractional precision (up to 3 decimal places where needed). Confirm practical measurement and any required rounding with the full drug instructions.</p>
     <p style="font-size:12px;color:var(--ink-soft);">Patient details (weight, gestation, date of birth) are stored on this device only and never sent anywhere. Use “Clear” to remove them.</p>
     <div class="about-box">
       <div class="about-title">Drug list &amp; updates</div>
@@ -479,16 +525,11 @@ function fmtSmart(n){
   if(!isFinite(n)) return '—';
   if(n===0) return '0';
   const neg = n<0; const a = Math.abs(n);
-  let s;
-  if(a < 1){
-    s = a.toFixed(3);
-    s = s.replace(/0+$/,'').replace(/\.$/,'');
-    if(s==='' || s==='0') s = '0';
-    if(s.indexOf('.')===-1 && s!=='0'){ s = String(Math.ceil(a)); }
-    if(s.charAt(0)==='.') s = '0'+s;
-  } else {
-    s = String(Math.ceil(a));
-  }
+  // Preserve clinically meaningful fractional amounts; never ceil a calculated
+  // dose or volume to the next whole number. Display up to 3 decimal places.
+  let s = a.toFixed(3).replace(/0+$/,'').replace(/\.$/,'');
+  if(s==='') s = '0';
+  if(s.charAt(0)==='.') s = '0'+s;
   return (neg?'-':'')+s;
 }
 function mg(doseMgPerKg,wt){return fmtSmart(doseMgPerKg*wt)+' mg';}
@@ -583,7 +624,9 @@ function renderPtCard(){
   let warn = '';
   if(p.wt<0.4) warn = '⚠ Weight '+p.wt.toFixed(2)+' kg is unusually LOW for a neonate — check for a data-entry error.';
   else if(p.wt>6.0) warn = '⚠ Weight '+p.wt.toFixed(2)+' kg is unusually HIGH for a neonate — check for a data-entry error.';
-  if(p.dol===null) warn = (warn?warn+' ':'')+'⚠ Date of birth is in the future — check the date.';
+  if(p.dol===null) warn = (warn?warn+' ':'')+'⚠ Date of birth/time is invalid or in the future — check the entry.';
+  const weightAgeHours = p.updatedAt ? (Date.now()-new Date(p.updatedAt).getTime())/3600000 : Infinity;
+  if(!Number.isFinite(weightAgeHours) || weightAgeHours>24) warn = (warn?warn+' ':'')+'⚠ Weight was last entered more than 24 hours ago (or its entry time is unavailable). Re-weigh and update before using calculated doses.';
   v.innerHTML = `<div class="pt-row">
       <div class="pt-pills">
         <span class="pill"><span class="lbl">Weight</span>${p.wt.toFixed(2)} kg</span>
@@ -616,11 +659,26 @@ function closePtForm(){
 }
 $('pfCancelBtn').addEventListener('click', closePtForm);
 $('pfSaveBtn').addEventListener('click', ()=>{
-  const wt = $('pfWt').value, gaW = $('pfGaW').value, gaD = $('pfGaD').value || '0', dob = $('pfDob').value, tob = $('pfTob').value || '00:00';
-  if(!wt || !gaW || !dob){ alert('Please enter weight, GA (weeks) and date of birth.'); return; }
-  if(parseFloat(wt)<=0){ alert('Weight must be more than 0 kg.'); return; }
-  if(parseInt(gaW)<20 || parseInt(gaW)>44){ alert('GA weeks should be between 20 and 44.'); return; }
-  patient = {wt, gaW, gaD, dob, tob, updatedAt:new Date().toISOString()};
+  const wtRaw = $('pfWt').value.trim();
+  const gaWRaw = $('pfGaW').value.trim();
+  const gaDRaw = $('pfGaD').value.trim() || '0';
+  const dob = $('pfDob').value;
+  const tob = $('pfTob').value || '00:00';
+  const wt = Number(wtRaw), gaW = Number(gaWRaw), gaD = Number(gaDRaw);
+  if(!wtRaw || !gaWRaw || !dob){ alert('Please enter weight, GA (weeks) and date of birth.'); return; }
+  if(!Number.isFinite(wt) || wt<=0){ alert('Weight must be a valid number greater than 0 kg.'); return; }
+  if(!Number.isInteger(gaW) || gaW<20 || gaW>44){ alert('GA weeks must be a whole number between 20 and 44.'); return; }
+  if(!Number.isInteger(gaD) || gaD<0 || gaD>6){ alert('GA days must be a whole number between 0 and 6.'); return; }
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(dob) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(tob)){
+    alert('Please enter a valid date and time of birth.'); return;
+  }
+  const birth = new Date(dob+'T'+tob);
+  const [yy,mm,dd] = dob.split('-').map(Number);
+  if(!Number.isFinite(birth.getTime()) || birth.getFullYear()!==yy || birth.getMonth()+1!==mm || birth.getDate()!==dd){
+    alert('Date of birth is not a valid calendar date.'); return;
+  }
+  if(birth.getTime()>Date.now()){ alert('Date and time of birth cannot be in the future.'); return; }
+  patient = {wt:String(wt), gaW:String(gaW), gaD:String(gaD), dob, tob, updatedAt:new Date().toISOString()};
   savePatient(); closePtForm(); refreshAll();
 });
 function clearPatient(){
@@ -715,8 +773,19 @@ function cleanDrugList(list){
 function drugsFromCsvText(text){
   const rows = parseCSV(text);
   if(rows.length<2) throw new Error('drugs.csv is empty.');
+  const headerCount = rows[0].length;
   const list = csvRowsToDrugs(rows);
   if(list.length===0) throw new Error('No drugs found — the first row of drugs.csv must contain a "name" column.');
+  const seen = new Set();
+  for(const drug of list){
+    const key = String(drug.name||'').trim().toLowerCase();
+    if(!key) throw new Error('A drug row has a blank name. Correct drugs.csv before publishing.');
+    if(seen.has(key)) throw new Error('Duplicate drug name found: '+drug.name+'. Keep drug names unique before publishing.');
+    seen.add(key);
+  }
+  if(rows.slice(1).some(row=>row.length>headerCount && row.slice(headerCount).some(cell=>String(cell||'').trim()))){
+    throw new Error('A CSV row contains more columns than the header. Re-export drugs.csv and check commas/quotation marks.');
+  }
   return cleanDrugList(list);
 }
 function trySync(showErrorsToUser){
@@ -1073,10 +1142,10 @@ function drugItemHtml(d, showClass){
   const meta = [nm.rest];
   if(showClass){ const c = CLASS_BY_ID[drugClasses(d)[0]]; if(c) meta.push(c.label.replace(/^Antibacterials — /,'')); }
   const metaTxt = meta.filter(Boolean).join(' · ');
-  return `<div class="drug-item" onclick="showDrugDetail(${origIdx})"><div class="di-main">
+  return `<button type="button" class="drug-item" data-drug-index="${origIdx}" aria-label="Open ${escapeHtml(nm.short)}" onclick="showDrugDetail(${origIdx})"><div class="di-main">
       <div class="dn">${escapeHtml(nm.short)}${hasRule(d)?' <span class="calc-tag">calc</span>':''}</div>
       ${metaTxt ? `<div class="db">${escapeHtml(metaTxt)}</div>` : ''}
-    </div></div>`;
+    </div></button>`;
 }
 function groupDrugs(list){
   const map = {};
@@ -1172,10 +1241,10 @@ function showDrugDetail(idx, keepScroll){
     html += `<details class="incomp"><summary>Incompatibilities${n>1?' ('+n+')':''}</summary><div class="v">${escapeHtml(d['Incompatibilities'])}</div></details>`;
   }
   html += `</div>`;
-  $('drugList').innerHTML=''; $('drugList').style.display='none';
+  const wideLayout = window.matchMedia && window.matchMedia('(min-width: 900px)').matches; if(wideLayout){ $('drugList').style.display=''; } else { $('drugList').innerHTML=''; $('drugList').style.display='none'; }
   $('drugCount').style.display='none';
   $('viewSwitch').style.display = 'none';
-  $('drugDetailWrap').innerHTML = html;
+  $('drugDetailWrap').innerHTML = html; if(wideLayout){ document.querySelectorAll('#drugList .drug-item').forEach(el=>{ const selected=Number(el.dataset.drugIndex)===idx; el.classList.toggle('selected',selected); el.setAttribute('aria-pressed',String(selected)); }); }
   if(!keepScroll){ try{ const top = $('medPane').getBoundingClientRect().top + window.scrollY - (document.querySelector('header.app').offsetHeight + $('ptCard').offsetHeight) - 4; window.scrollTo(0, Math.max(0,top)); }catch(e){} }
 }
 function backToDrugList(){ currentDrugIdx = null; currentDrugName = null; filterDrugs($('drugSearch').value); }
@@ -1202,6 +1271,7 @@ function parseCSV(text){
       else field += c;
     }
   }
+  if(inQuotes) throw new Error('drugs.csv contains an unclosed quotation mark. Check the CSV export before publishing.');
   if(field.length>0 || row.length>0){ row.push(field); rows.push(row); }
   return rows.filter(r => !r.every(f => f.trim()===''));
 }
