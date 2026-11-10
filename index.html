@@ -479,16 +479,11 @@ function fmtSmart(n){
   if(!isFinite(n)) return '—';
   if(n===0) return '0';
   const neg = n<0; const a = Math.abs(n);
-  let s;
-  if(a < 1){
-    s = a.toFixed(3);
-    s = s.replace(/0+$/,'').replace(/\.$/,'');
-    if(s==='' || s==='0') s = '0';
-    if(s.indexOf('.')===-1 && s!=='0'){ s = String(Math.ceil(a)); }
-    if(s.charAt(0)==='.') s = '0'+s;
-  } else {
-    s = String(Math.ceil(a));
-  }
+  // Preserve clinically meaningful fractional amounts; never ceil a calculated
+  // dose or volume to the next whole number. Display up to 3 decimal places.
+  let s = a.toFixed(3).replace(/0+$/,'').replace(/\.$/,'');
+  if(s==='') s = '0';
+  if(s.charAt(0)==='.') s = '0'+s;
   return (neg?'-':'')+s;
 }
 function mg(doseMgPerKg,wt){return fmtSmart(doseMgPerKg*wt)+' mg';}
