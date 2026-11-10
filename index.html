@@ -388,7 +388,7 @@
 /* Desktop and accessibility refinement */
 button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,.drug-item:focus-visible{outline:3px solid #2A8C83!important;outline-offset:2px}
 .drug-item{appearance:none;-webkit-appearance:none;width:100%;text-align:left;font-family:var(--sans);color:inherit;min-height:52px}
-.drug-item[aria-pressed="true"]{background:#E8F3F1!important;border-color:#7FB9B0;box-shadow:inset 3px 0 0 var(--teal)}
+.drug-item.selected,.drug-item[aria-pressed="true"]{background:#E8F3F1!important;border-color:#7FB9B0;box-shadow:inset 3px 0 0 var(--teal)}
 .drug-item .dn,.drug-item .db{line-height:1.4}
 .drug-detail{box-shadow:0 2px 10px rgba(11,46,51,.045)}
 .drug-detail .sec{padding-top:14px;margin-top:14px}
@@ -1142,10 +1142,10 @@ function drugItemHtml(d, showClass){
   const meta = [nm.rest];
   if(showClass){ const c = CLASS_BY_ID[drugClasses(d)[0]]; if(c) meta.push(c.label.replace(/^Antibacterials — /,'')); }
   const metaTxt = meta.filter(Boolean).join(' · ');
-  return `<button type="button" class="drug-item" data-drug-index="${origIdx}" onclick="showDrugDetail(${origIdx})"><span class="di-main">
+  return `<button type="button" class="drug-item" data-drug-index="${origIdx}" aria-label="Open ${escapeHtml(nm.short)}" onclick="showDrugDetail(${origIdx})"><div class="di-main">
       <div class="dn">${escapeHtml(nm.short)}${hasRule(d)?' <span class="calc-tag">calc</span>':''}</div>
       ${metaTxt ? `<div class="db">${escapeHtml(metaTxt)}</div>` : ''}
-    </span></button>`;
+    </div></button>`;
 }
 function groupDrugs(list){
   const map = {};
@@ -1244,7 +1244,7 @@ function showDrugDetail(idx, keepScroll){
   const wideLayout = window.matchMedia && window.matchMedia('(min-width: 900px)').matches; if(wideLayout){ $('drugList').style.display=''; } else { $('drugList').innerHTML=''; $('drugList').style.display='none'; }
   $('drugCount').style.display='none';
   $('viewSwitch').style.display = 'none';
-  $('drugDetailWrap').innerHTML = html; if(wideLayout){ document.querySelectorAll('#drugList .drug-item').forEach(el=>el.classList.toggle('selected', Number(el.dataset.drugIndex)===idx)); }
+  $('drugDetailWrap').innerHTML = html; if(wideLayout){ document.querySelectorAll('#drugList .drug-item').forEach(el=>{ const selected=Number(el.dataset.drugIndex)===idx; el.classList.toggle('selected',selected); el.setAttribute('aria-pressed',String(selected)); }); }
   if(!keepScroll){ try{ const top = $('medPane').getBoundingClientRect().top + window.scrollY - (document.querySelector('header.app').offsetHeight + $('ptCard').offsetHeight) - 4; window.scrollTo(0, Math.max(0,top)); }catch(e){} }
 }
 function backToDrugList(){ currentDrugIdx = null; currentDrugName = null; filterDrugs($('drugSearch').value); }
