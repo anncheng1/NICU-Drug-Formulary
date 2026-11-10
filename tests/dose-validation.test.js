@@ -16,29 +16,15 @@ const vm = require('node:vm');
 const html = fs.readFileSync(require('node:path').join(__dirname, '..', 'index.html'), 'utf8');
 
 function extractFunction(name) {
-  const marker = new RegExp('function\\s+' + name + '\\s*\\(');
+  const marker = new RegExp('function\\\\s+' + name + '\\\\s*\\\\(');
   const match = marker.exec(html);
   assert.ok(match, 'Expected function ' + name + ' to exist in index.html');
-  const start = match.index;
   const open = html.indexOf('{', match.index);
-  let depth = 0, quote = null, escaped = false, lineComment = false, blockComment = false;
-  for (let i = open; i < html.length; i++) {
-    const c = html[i], n = html[i + 1];
-    if (lineComment) { if (c === '\\n') lineComment = false; continue; }
-    if (blockComment) { if (c === '*' && n === '/') { blockComment = false; i++; } continue; }
-    if (quote) {
-      if (escaped) { escaped = false; continue; }
-      if (c === '\\\\') { escaped = true; continue; }
-      if (c === quote) quote = null;
-      continue;
-    }
-    if (c === '/' && n === '/') { lineComment = true; i++; continue; }
-    if (c === '/' && n === '*') { blockComment = true; i++; continue; }
-    if (c === "'" || c === '"' || c === '`') { quote = c; continue; }
-    if (c === '{') depth++;
-    if (c === '}' && --depth === 0) return html.slice(start, i + 1);
-  }
-  throw new Error('Could not find end of function ' + name);
+  // App functions are formatted with the outer closing brace at column zero.
+  // This avoids miscounting braces inside JavaScript regular-expression literals.
+  const close = html.indexOf('\\n}', open);
+  assert.ok(close > open, 'Could not find end of function ' + name);
+  return html.slice(match.index, close + 2);
 }
 
 const context = {
